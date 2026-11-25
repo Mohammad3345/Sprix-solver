@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SPRIX Smart Solver — Python & Java</title>
+  <style>
+    :root {
+      --bg: #0b1120;
+      --card: #111827;
+      --border: #1f2937;
+      --accent: #10b981;
+      --accent-hover: #059669;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --danger: #ef4444;
+    }
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif; }
+    body { margin: 0; background: var(--bg); color: var(--text); padding: 14px; }
+    .wrap { max-width: 760px; margin: 0 auto; }
+    .header { text-align: center; padding: 10px 0 18px; }
+    .header h1 { margin: 0; color: var(--accent); font-size: 22px; }
+    .header p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 14px; margin-bottom: 14px; }
+    label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .row > * { flex: 1; min-width: 140px; }
+    input[type="password"], input[type="text"], textarea, select {
+      width: 100%; background: #0f172a; color: var(--text); border: 1px solid #334155;
+      border-radius: 10px; padding: 10px 12px; font-size: 14px; outline: none;
+    }
+    input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+    textarea { resize: vertical; min-height: 110px; line-height: 1.6; }
+    .btn {
+      background: var(--accent); color: #fff; border: none; border-radius: 10px;
+      padding: 11px 16px; font-size: 14px; font-weight: 700; cursor: pointer; width: 100%;
+    }
+    .btn:hover { background: var(--accent-hover); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-sec { background: #334155; width: auto; padding: 10px 14px; font-size: 13px; }
+    .btn-sec:hover { background: #475569; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+    .tab {
+      flex: 1; text-align: center; padding: 10px 8px; border-radius: 10px; cursor: pointer;
+      background: #0f172a; border: 1px solid #334155; color: var(--muted); font-size: 13px; font-weight: 700;
+    }
+    .tab.active { background: rgba(16,185,129,0.15); border-color: var(--accent); color: var(--accent); }
+    .upload-box {
+      border: 1.5px dashed #334155; border-radius: 10px; padding: 12px; text-align: center;
+      cursor: pointer; background: #0f172a; color: var(--muted); font-size: 13px; margin-top: 10px;
+    }
+    .preview-wrap { margin-top: 10px; display: none; text-align: center; }
+    .preview-wrap img { max-width: 100%; max-height: 220px; border-radius: 10px; border: 1px solid #334155; }
+    .code-box {
+      position: relative; background: #020617; border: 1px solid #1e293b; border-radius: 10px;
+      padding: 12px; margin-top: 10px; direction: ltr; text-align: left; overflow-x: auto;
+    }
+    pre { margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; color: #e2e8f0; white-space: pre-wrap; word-break: break-word; }
+    .copy-btn {
+      position: absolute; top: 8px; right: 8px; background: var(--accent); color: #fff;
+      border: none; border-radius: 6px; padding: 5px 10px; font-size: 12px; font-weight: 700; cursor: pointer;
+    }
+    .status { font-size: 13px; color: var(--muted); margin-top: 8px; }
+    .answer-text { font-size: 15px; line-height: 1.7; color: #f1f5f9; white-space: pre-wrap; }
+    .badge { display: inline-block; padding: 3px 8px; border-radius: 99px; font-size: 11px; background: rgba(16,185,129,0.15); color: var(--accent); margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <h1>⚡ منصة SPRIX الذكية للحل السريع</h1>
+      <p>حل مباشر لبرمجة Python و Java وأسئلة التثقيف المالي بالنص أو بلقطة الشاشة</p>
+    </div>
+
+    <!-- مفتاح API -->
+    <div class="card">
+      <label for="apiKey">🔑 مفتاح Gemini API (يُحفظ مرة واحدة في متصفحك فقط)</label>
+      <div class="row">
+        <input type="password" id="apiKey" placeholder="الصق مفتاح GEMINI_API_KEY هنا..." />
+        <button class="btn btn-sec" id="saveKeyBtn" type="button">حفظ المفتاح</button>
+      </div>
+      <div id="keyStatus" class="status"></div>
+    </div>
+
+    <!-- اختيار المادة / اللغة -->
+    <div class="card">
+      <label>اختر المادة أو لغة البرمجة</label>
+      <div class="tabs" id="modeTabs">
+        <div class="tab active" data-mode="python">🐍 Python (بايثون)</div>
+        <div class="tab" data-mode="java">☕ Java (جافا)</div>
+        <div class="tab" data-mode="finance">💰 التثقيف المالي</div>
+      </div>
+
+      <label for="question">نص السؤال أو الكود المطلوب حله / تصحيحه</label>
+      <textarea id="question" placeholder="اكتب أو الصق السؤال هنا... (أو ارفع لقطة شاشة بالأسفل)"></textarea>
+
+      <div class="upload-box" id="uploadTrigger">
+        📷 اضغط هنا لاختيار لقطة شاشة للسؤال من الهاتف (اختياري)
+        <input type="file" id="imgInput" accept="image/*" style="display:none;" />
+      </div>
+      <div class="preview-wrap" id="previewWrap">
+        <img id="previewImg" alt="معاينة الصورة" />
+        <div style="margin-top:6px;">
+          <button class="btn btn-sec" id="clearImgBtn" type="button" style="background:var(--danger);">حذف الصورة</button>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <button class="btn" id="solveBtn" type="button">🚀 احصل على الحل الصحيح الآن</button>
+      </div>
+      <div id="runStatus" class="status"></div>
+    </div>
+
+    <!-- النتيجة -->
+    <div class="card" id="resultCard" style="display:none;">
+      <span class="badge" id="modelBadge">Gemini Flash</span>
+      <div id="answerSection" style="display:none; margin-bottom:12px;">
+        <label>الإجابة الصحيحة:</label>
+        <div id="answerOut" class="answer-text"></div>
+      </div>
+      <div id="codeSection" style="display:none;">
+        <label>الكود الجاهز للتشغيل:</label>
+        <div class="code-box">
+          <button class="copy-btn" id="copyCodeBtn" type="button">نسخ الكود</button>
+          <pre id="codeOut"></pre>
+        </div>
+      </div>
+      <div id="expSection" style="display:none; margin-top:12px;">
+        <label>الشرح المختصر:</label>
+        <div id="expOut" class="answer-text" style="font-size:13px; color:#cbd5e1;"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash'];
+    let currentMode = 'python';
+    let imgBase64 = null;
+    let imgMime = null;
+
+    const apiKeyEl = document.getElementById('apiKey');
+    const keyStatusEl = document.getElementById('keyStatus');
+    const runStatusEl = document.getElementById('runStatus');
+    const imgInput = document.getElementById('imgInput');
+    const previewWrap = document.getElementById('previewWrap');
+    const previewImg = document.getElementById('previewImg');
+
+    // تحميل المفتاح المحفوظ
+    const savedKey = (localStorage.getItem('SPRIX_GEMINI_KEY') || '').trim();
+    if (savedKey) {
+      apiKeyEl.value = savedKey;
+      keyStatusEl.textContent = 'المفتاح محفوظ وجاهز للعمل ✅';
+    }
+
+    document.getElementById('saveKeyBtn').onclick = () => {
+      const k = apiKeyEl.value.trim();
+      if (!k) { keyStatusEl.textContent = 'أدخل المفتاح أولاً.'; return; }
+      localStorage.setItem('SPRIX_GEMINI_KEY', k);
+      keyStatusEl.textContent = 'تم حفظ المفتاح بنجاح ✅';
+    };
+
+    // تبديل التبويبات
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.onclick = () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentMode = tab.dataset.mode;
+      };
+    });
+
+    // رفع صورة
+    document.getElementById('uploadTrigger').onclick = () => imgInput.click();
+    imgInput.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      imgMime = file.type || 'image/jpeg';
+      const reader = new FileReader();
+      reader.onload = () => {
+        previewImg.src = reader.result;
+        previewWrap.style.display = 'block';
+        imgBase64 = reader.result.split(',')[1];
+      };
+      reader.readAsDataURL(file);
+    };
+
+    document.getElementById('clearImgBtn').onclick = () => {
+      imgBase64 = null; imgMime = null; imgInput.value = '';
+      previewWrap.style.display = 'none';
+    };
+
+    function parseJsonSafe(raw) {
+      const cleaned = (raw || '').replace(/^```(?:json)?|```$/gm, '').trim();
+      const candidates = [cleaned];
+      const m = cleaned.match(/\{[\s\S]*\}/);
+      if (m) candidates.push(m[0]);
+      for (const c of candidates) {
+        try {
+          let obj = JSON.parse(c);
+          if (Array.isArray(obj)) obj = obj.find(x => x && typeof x === 'object');
+          if (obj && typeof obj === 'object') return obj;
+        } catch (e) {}
+      }
+      return null;
+    }
+
+    async function callGemini(promptText, apiKey) {
+      const parts = [];
+      if (imgBase64) parts.push({ inline_data: { mime_type: imgMime, data: imgBase64 } });
+      parts.push({ text: promptText });
+
+      let lastErr = 'تعذر الاتصال بالخادم';
+      for (const model of MODELS) {
+        try {
+          const resp = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts }],
+                generationConfig: { temperature: 0.1, responseMimeType: 'application/json' }
+              })
+            }
+          );
+          const data = await resp.json();
+          if (!resp.ok) {
+            lastErr = data?.error?.message || `HTTP ${resp.status}`;
+            continue;
+          }
+          const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          const parsed = parseJsonSafe(raw);
+          if (parsed) return { model, data: parsed };
+        } catch (err) {
+          lastErr = err.message;
+        }
+      }
+      throw new Error(lastErr);
+    }
+
+    document.getElementById('solveBtn').onclick = async () => {
+      const apiKey = apiKeyEl.value.trim() || (localStorage.getItem('SPRIX_GEMINI_KEY') || '').trim();
+      const q = document.getElementById('question').value.trim();
+      if (!apiKey) { runStatusEl.textContent = '⚠️ أدخل مفتاح Gemini API واحفظه أولاً.'; return; }
+      if (!q && !imgBase64) { runStatusEl.textContent = '⚠️ اكتب السؤال أو ارفع لقطة شاشة أولاً.'; return; }
+
+      localStorage.setItem('SPRIX_GEMINI_KEY', apiKey);
+      const btn = document.getElementById('solveBtn');
+      btn.disabled = true;
+      runStatusEl.textContent = '⏳ جاري التحليل وتجهيز الحل...';
+
+      const modePrompt =
+        currentMode === 'python'
+          ? 'Solve this Python 3 programming question (Sprix/QUREO). Provide exact clean runnable Python 3 code with 4-space indentation.'
+          : currentMode === 'java'
+          ? 'Solve this Java programming question (Sprix/QUREO). Provide exact compilable Java code with proper class/main structure and semicolons.'
+          : 'Solve this Financial Literacy (التثقيف المالي - Sprix) question accurately in Arabic. Put the exact correct answer choice in "answer" and leave "code" empty.';
+
+      const prompt = `${modePrompt}\nQuestion text (if any):\n${q || '(See attached screenshot)'}\n\nReply ONLY valid JSON:\n{"answer":"direct correct answer in Arabic (if multiple choice/theory, else empty)","code":"exact raw runnable code only without backticks (if programming, else empty)","explanation":"brief Arabic explanation in 2 lines"}`;
+
+      try {
+        const { model, data } = await callGemini(prompt, apiKey);
+        document.getElementById('resultCard').style.display = 'block';
+        document.getElementById('modelBadge').textContent = `النموذج: ${model}`;
+
+        const ans = (data.answer || '').trim();
+        const code = (data.code || '').trim();
+        const exp = (data.explanation || '').trim();
+
+        document.getElementById('answerSection').style.display = ans ? 'block' : 'none';
+        document.getElementById('answerOut').textContent = ans;
+
+        document.getElementById('codeSection').style.display = code ? 'block' : 'none';
+        document.getElementById('codeOut').textContent = code;
+
+        document.getElementById('expSection').style.display = exp ? 'block' : 'none';
+        document.getElementById('expOut').textContent = exp;
+
+        runStatusEl.textContent = 'تم الحل بنجاح ✅';
+      } catch (e) {
+        runStatusEl.textContent = `❌ خطأ: ${e.message}`;
+      } finally {
+        btn.disabled = false;
+      }
+    };
+
+    document.getElementById('copyCodeBtn').onclick = async () => {
+      const txt = document.getElementById('codeOut').textContent;
+      if (!txt) return;
+      try {
+        await navigator.clipboard.writeText(txt);
+      } catch {
+        const ta = document.createElement('textarea');
+        ta.value = txt; document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); document.body.removeChild(ta);
+      }
+      const b = document.getElementById('copyCodeBtn');
+      b.textContent = 'تم النسخ ✅';
+      setTimeout(() => (b.textContent = 'نسخ الكود'), 1500);
+    };
+  </script>
+</body>
+</html>
